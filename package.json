@@ -1,0 +1,11 @@
+{
+  "_comment": "This package.json is a redirect shim — the actual project is in the subfolder below.",
+  "name": "openclaw-redirect",
+  "version": "0.0.1",
+  "description": "OpenClaw installation redirect — run 'bash install.sh' from this directory",
+  "scripts": {
+    "install-redirect": "node -e \"const{execSync}=require('child_process');const{existsSync}=require('fs');const{join}=require('path');const cwd=process.cwd();const inner=join(cwd,'openclaw-main');if(existsSync(join(inner,'package.json'))){console.log('[openclaw] Redirecting to project root: '+inner);process.chdir(inner);execSync('bash install.sh',{stdio:'inherit',cwd:inner})}else{console.error('[openclaw] ERROR: cannot find openclaw-main/ subfolder. Are you in the right directory?');process.exit(1);}\"",
+    "postinstall": "node -e \"console.log('\\n[openclaw] ═══════════════════════════════════════════════════════');console.log('[openclaw] ⚠  You ran npm install in the WRONG directory!');console.log('[openclaw]');console.log('[openclaw] The project files are in the subfolder: openclaw-main/');console.log('[openclaw]');console.log('[openclaw] Run the correct install command:');console.log('[openclaw]');console.log('[openclaw]   Linux/macOS:');console.log('[openclaw]     cd openclaw-main && bash install.sh');console.log('[openclaw]');console.log('[openclaw]   Windows:');console.log('[openclaw]     cd openclaw-main');console.log('[openclaw]     powershell -ExecutionPolicy Bypass -File install.ps1');console.log('[openclaw] ═══════════════════════════════════════════════════════\\n');\""
+  },
+  "private": true
+}
