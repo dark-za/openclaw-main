@@ -300,6 +300,39 @@ if [ -z "$PYTHON_EXE" ]; then
   fi
 fi
 
+# ── pip bootstrap (Ubuntu 24.04 ships Python without pip) ──────────────────────
+if [ -n "$PYTHON_EXE" ]; then
+  if ! "$PYTHON_EXE" -m pip --version &>/dev/null 2>&1; then
+    warn "pip not found for $PYTHON_EXE — installing…"
+    # Try 1: ensurepip (works on most CPython builds)
+    if "$PYTHON_EXE" -m ensurepip --upgrade &>/dev/null 2>&1; then
+      ok "pip installed via ensurepip"
+    elif [ "$OS" = "Linux" ] && command -v apt-get &>/dev/null; then
+      # Try 2: system package (Ubuntu/Debian)
+      info "Installing python3-pip via apt-get…"
+      sudo apt-get install -y python3-pip python3-venv
+      ok "pip installed via apt-get"
+    elif [ "$OS" = "Linux" ] && command -v dnf &>/dev/null; then
+      sudo dnf install -y python3-pip && ok "pip installed via dnf"
+    elif [ "$OS" = "Linux" ] && command -v pacman &>/dev/null; then
+      sudo pacman -Sy --noconfirm python-pip && ok "pip installed via pacman"
+    elif command -v curl &>/dev/null; then
+      # Try 3: get-pip.py (universal fallback)
+      info "Installing pip via get-pip.py…"
+      curl -fsSL https://bootstrap.pypa.io/get-pip.py | "$PYTHON_EXE"
+      ok "pip installed via get-pip.py"
+    else
+      warn "Cannot install pip automatically"
+      warn "Run: sudo apt-get install python3-pip   (or equivalent for your distro)"
+      PYTHON_EXE=""   # disable Python steps — pip is required
+    fi
+    # Upgrade pip to latest after install
+    [ -n "$PYTHON_EXE" ] && "$PYTHON_EXE" -m pip install --upgrade pip --quiet 2>/dev/null || true
+  else
+    ok "pip $(${PYTHON_EXE} -m pip --version | awk '{print $2}')"
+  fi
+fi
+
 # ── C++ compiler (needed for llama-cpp-python build) ──
 HAS_COMPILER=0
 if command -v gcc &>/dev/null || command -v clang &>/dev/null || command -v cc &>/dev/null; then
