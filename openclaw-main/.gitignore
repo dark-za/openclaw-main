@@ -43,6 +43,7 @@ bin/clawdbot-mac
 !bin/setup.py
 !bin/postinstall.mjs
 !bin/openclaw-llm.sh
+!bin/openclaw-start.sh
 bin/docs-list
 apps/macos/.build-local/
 apps/macos/.swiftpm/

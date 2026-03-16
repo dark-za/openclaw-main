@@ -429,57 +429,12 @@ fi
 
 # Write the all-in-one startup script
 START_SCRIPT="$PROJECT_ROOT/bin/openclaw-start.sh"
-LLAMA_SCRIPT="$PROJECT_ROOT/bin/openclaw-llm.sh"
-
-cat > "$START_SCRIPT" << 'STARTSCRIPT'
-#!/usr/bin/env bash
-# OpenClaw — unified startup script
-# Starts the llama-cpp inference server then the OpenClaw gateway.
-set -euo pipefail
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
-
-GREEN='\033[0;32m'; CYAN='\033[0;36m'; BOLD='\033[1m'; RESET='\033[0m'
-ok()   { echo -e "  ${GREEN}✓${RESET}  $*"; }
-info() { echo -e "  ${CYAN}→${RESET}  $*"; }
-
-echo -e "\n${BOLD}${CYAN}OpenClaw — Starting${RESET}"
-echo -e "────────────────────────────────────\n"
-
-# 1. Load .env if present
-ENV_FILE="$HOME/.openclaw/.env"
-if [ -f "$ENV_FILE" ]; then
-  set -a; source "$ENV_FILE"; set +a
-  ok "Loaded ~/.openclaw/.env"
-fi
-
-# 2. Start llama-cpp inference server in background (if venv exists)
-VENV_PYTHON="$HOME/.openclaw/venv/bin/python"
-LLM_SCRIPT="$PROJECT_DIR/scripts/llama_cpp_server.py"
-
-if [ -f "$VENV_PYTHON" ] && [ -f "$LLM_SCRIPT" ]; then
-  info "Starting llama-cpp server on :8765 (background)…"
-  "$VENV_PYTHON" "$LLM_SCRIPT" > "$HOME/.openclaw/llm.log" 2>&1 &
-  LLM_PID=$!
-  echo "$LLM_PID" > "$HOME/.openclaw/llm.pid"
-  ok "llama-cpp server PID $LLM_PID (log: ~/.openclaw/llm.log)"
-  sleep 2
+if [ ! -f "$START_SCRIPT" ]; then
+  warn "Startup script missing: $START_SCRIPT"
 else
-  info "llama-cpp venv not found — skipping inference server"
-  info "Run: bash install.sh  to set up local inference"
+  chmod +x "$START_SCRIPT"
+  ok "Startup script ready: bash bin/openclaw-start.sh"
 fi
-
-# 3. Start OpenClaw gateway
-info "Starting OpenClaw gateway…"
-cd "$PROJECT_DIR"
-exec node --enable-source-maps dist/cli.js start "$@" 2>/dev/null || \
-  exec npx openclaw start "$@" 2>/dev/null || \
-  exec pnpm start "$@"
-STARTSCRIPT
-
-chmod +x "$START_SCRIPT"
-ok "Startup script → bin/openclaw-start.sh"
 
 # ── Final summary ──────────────────────────────────────────────────────────────
 sep
