@@ -358,17 +358,21 @@ if [ "$PKG_MGR" = "pnpm" ] && [ -f "pnpm-workspace.yaml" ]; then
   ok "pnpm workspace detected"
 fi
 
-INSTALL_CMD="$PKG_MGR install"
-
-# Suppress the postinstall for now (we'll run it explicitly with full output)
-OPENCLAW_SKIP_SETUP=1 $INSTALL_CMD || {
-  warn "$PKG_MGR install failed with OPENCLAW_SKIP_SETUP=1 — retrying with npm"
-  OPENCLAW_SKIP_SETUP=1 npm install
-}
+# Use --ignore-scripts so pnpm/npm never tries to execute postinstall
+# (which calls bin/postinstall.mjs — a file that may not exist yet in fresh clones).
+# We run Python setup explicitly below with full output control.
+if [ "$PKG_MGR" = "pnpm" ]; then
+  pnpm install --ignore-scripts || {
+    warn "pnpm install --ignore-scripts failed — retrying with npm --ignore-scripts"
+    npm install --ignore-scripts || die "npm install failed. Check the output above."
+  }
+else
+  npm install --ignore-scripts || die "npm install failed. Check the output above."
+fi
 ok "Node.js dependencies installed"
 
 # ── Python dependencies & local inference setup ────────────────────────────────
-if [ "${OPENCLAW_SKIP_SETUP:-0}" != "1" ] && [ -n "$PYTHON_EXE" ]; then
+if [ -n "$PYTHON_EXE" ]; then
   SETUP_ARGS=()
   [ "$SKIP_MODEL"      = "1" ] && SETUP_ARGS+=("--skip-model")
   [ "$SKIP_LLAMA"      = "1" ] && SETUP_ARGS+=("--skip-llama")
@@ -376,39 +380,39 @@ if [ "${OPENCLAW_SKIP_SETUP:-0}" != "1" ] && [ -n "$PYTHON_EXE" ]; then
 
   if [ -f "bin/setup.py" ]; then
     step "🦙 Running local inference setup (bin/setup.py)"
-    OPENCLAW_SETUP_VERBOSE=0 "$PYTHON_EXE" bin/setup.py "${SETUP_ARGS[@]}" || \
-      warn "Setup encountered errors — some local inference features may not work"
+    "$PYTHON_EXE" bin/setup.py "${SETUP_ARGS[@]}" || \
+      warn "setup.py completed with warnings — check output above"
   else
-    step "🦙 Installing Python inference dependencies (manual fallback)"
-
-    # huggingface-hub
+    # ── Inline fallback when bin/setup.py is not present ──
+    step "🦙 Installing Python inference dependencies"
+    "$PYTHON_EXE" -m pip install --upgrade pip --quiet
     "$PYTHON_EXE" -m pip install --upgrade huggingface-hub || warn "huggingface-hub install failed"
 
-    # llama-cpp-python with correct backend
     if [ "$SKIP_LLAMA" != "1" ]; then
       info "Building llama-cpp-python for: $GPU_NAME"
       if [ -n "$CMAKE_ARGS" ]; then
         info "CMAKE_ARGS=$CMAKE_ARGS"
-        CMAKE_ARGS="$CMAKE_ARGS" "$PYTHON_EXE" -m pip install "llama-cpp-python[server]>=0.3.4" || \
-          { warn "GPU build failed — falling back to CPU build"
-            "$PYTHON_EXE" -m pip install "llama-cpp-python[server]>=0.3.4"; }
+        CMAKE_ARGS="$CMAKE_ARGS" "$PYTHON_EXE" -m pip install "llama-cpp-python[server]>=0.3.4" || {
+          warn "GPU build failed — falling back to CPU-only build"
+          "$PYTHON_EXE" -m pip install "llama-cpp-python[server]>=0.3.4"
+        }
       else
         "$PYTHON_EXE" -m pip install "llama-cpp-python[server]>=0.3.4" || \
-          warn "llama-cpp-python install failed — local inference will not work"
+          warn "llama-cpp-python install failed — run: pip install 'llama-cpp-python[server]'"
       fi
     fi
 
-    # Playwright
     if [ "$SKIP_PLAYWRIGHT" != "1" ] && command -v npx &>/dev/null; then
       info "Installing Playwright system dependencies…"
-      npx playwright install --with-deps 2>/dev/null || \
-        { warn "playwright --with-deps failed — trying without --with-deps"
-          npx playwright install || warn "Playwright install incomplete"; }
+      npx playwright install --with-deps 2>/dev/null || {
+        warn "playwright --with-deps failed — trying without --with-deps"
+        npx playwright install || warn "Playwright install incomplete"
+      }
     fi
   fi
-elif [ -z "$PYTHON_EXE" ]; then
+else
   warn "Python not found — skipping local inference setup"
-  warn "Install Python 3.10+ and re-run: bash install.sh"
+  warn "Install Python 3.10+ then re-run: bash install.sh"
 fi
 
 # ── Final summary ──────────────────────────────────────────────────────────────
