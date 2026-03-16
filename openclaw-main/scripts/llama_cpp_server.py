@@ -39,6 +39,18 @@ import subprocess
 import sys
 from pathlib import Path
 
+# ── venv auto-bootstrap ───────────────────────────────────────────────────────
+# If run with the system Python (e.g. `python3 scripts/llama_cpp_server.py`),
+# automatically re-exec inside the OpenClaw venv so llama_cpp is importable.
+# This makes the script work regardless of which Python the user invokes.
+_VENV_DIR = Path(os.environ.get("OPENCLAW_VENV_DIR", str(Path.home() / ".openclaw" / "venv")))
+_VENV_PYTHON = _VENV_DIR / "bin" / "python"
+
+if _VENV_PYTHON.exists() and Path(sys.executable).resolve() != _VENV_PYTHON.resolve():
+    # Re-exec with venv Python, preserving all arguments
+    os.execv(str(_VENV_PYTHON), [str(_VENV_PYTHON)] + sys.argv)
+# ── end venv bootstrap ────────────────────────────────────────────────────────
+
 # ── Defaults ──────────────────────────────────────────────────────────────────────────────
 
 DEFAULT_MODEL_REPO = "bartowski/Llama-3.2-3B-Instruct-GGUF"
