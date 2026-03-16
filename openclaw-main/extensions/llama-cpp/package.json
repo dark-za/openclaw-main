@@ -1,0 +1,12 @@
+{
+  "name": "@openclaw/llama-cpp-provider",
+  "version": "2026.3.16",
+  "private": true,
+  "description": "OpenClaw llama-cpp-python native local inference provider plugin",
+  "type": "module",
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}

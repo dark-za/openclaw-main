@@ -1,0 +1,28 @@
+# OpenClaw local inference dependencies
+# Used by: scripts/llama_cpp_server.py
+#
+# Installation
+# ------------
+# CPU only (no GPU):
+#   pip install llama-cpp-python[server] huggingface-hub
+#
+# CUDA (NVIDIA GPU):
+#   CMAKE_ARGS="-DGGML_CUDA=on" pip install llama-cpp-python[server] huggingface-hub
+#
+# Metal (Apple Silicon / macOS):
+#   CMAKE_ARGS="-DGGML_METAL=on" pip install llama-cpp-python[server] huggingface-hub
+#
+# ROCm (AMD GPU):
+#   CMAKE_ARGS="-DGGML_HIPBLAS=on" pip install llama-cpp-python[server] huggingface-hub
+#
+# NOTE: llama-cpp-python must be compiled with the appropriate backend flag for
+# GPU acceleration to work. The server script auto-detects hardware, but it
+# cannot recompile the wheel at runtime. Install the correct build for your GPU.
+
+# Core local inference library — the [server] extra includes uvicorn + starlette
+# which are required by scripts/llama_cpp_server.py.
+llama-cpp-python[server]>=0.3.4
+
+# HuggingFace Hub client — used by llama_cpp_server.py to auto-download GGUF
+# model files on first run.
+huggingface-hub>=0.24.0

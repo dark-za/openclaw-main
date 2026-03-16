@@ -1,0 +1,9 @@
+{
+  "id": "llama-cpp",
+  "providers": ["llama-cpp"],
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}
